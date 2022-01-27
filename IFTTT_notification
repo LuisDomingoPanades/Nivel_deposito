@@ -1,0 +1,55 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+const char* ssid = "MOVISTAR_10C4";
+const char* password = "*******";
+
+//Your IFTTT webhook private address
+const char* serverName = "https://maker.ifttt.com/trigger/notification/with/key/p-SJS1zQAefxaqHfdtnj2yCO4CDQ_xKuB0CkcR5Qm3h";
+float lastTime;
+
+void setup() {
+  Serial.begin(115200);
+
+  WiFi.begin(ssid, password);
+  Serial.println("Connecting");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to WiFi network with IP Address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void loop() {
+  //Send an HTTP POST request on button press
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    if (Serial.available())
+    {
+      
+       String Nivel=Serial.readStringUntil('\n');
+       if (Nivel.toFloat()<20){
+      HTTPClient http;
+
+      http.begin(serverName);
+
+      http.addHeader("Content-Type", "application/json");
+      String httpRequestData = "{\"value1\":\"Nivel\"}";
+      int httpResponseCode = http.POST(httpRequestData);
+
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+
+      http.end();
+    }
+  }
+  }
+  else {
+    Serial.println("WiFi Disconnected");
+    delay(5000);
+  }
+  lastTime = millis();
+  delay(100);
+}
