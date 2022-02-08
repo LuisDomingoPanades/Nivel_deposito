@@ -1,0 +1,88 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#define Trig 34
+#define Echo 35
+const char* ssid = "MOVISTAR_10C4";
+const char* password = "32472A6EC6114FF1D71C";
+int notificado=0;
+int Notificacion=0;
+//Your IFTTT webhook private address
+const char* serverName = "https://maker.ifttt.com/trigger/notification/with/key/p-SJS1zQAefxaqHfdtnj2yCO4CDQ_xKuB0CkcR5Qm3h";
+float lastTime;
+
+void setup() {
+  
+  Serial.begin(115200);
+  pinMode(Trig, OUTPUT); //pin como salida
+  pinMode(Echo, INPUT);  //pin como entrada
+  digitalWrite(Trig, LOW);//Inicializamos el pin con 0
+
+  
+  WiFi.begin(ssid, password);
+  Serial.println("Connecting");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to WiFi network with IP Address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void loop() {
+  //Send an HTTP POST request on button press
+
+
+  long t; //timepo que demora en llegar el eco
+  long d; //distancia en centimetros
+
+  digitalWrite(Trig, HIGH);
+  delayMicroseconds(10);          //Enviamos un pulso de 10us
+  digitalWrite(Trig, LOW);
+  
+  t = pulseIn(Echo, HIGH); //obtenemos el ancho del pulso
+  d = t/59;             //escalamos el tiempo a una distancia en cm
+  
+  Serial.print("Distancia: ");
+  Serial.print(d);      //Enviamos serialmente el valor de la distancia
+  Serial.print("cm");
+  Serial.println();
+  delay(100);          //Hacemos una pausa de 100
+  if (d<40)
+  {notificado=0;}
+  if (notificado==0){
+  if (d>80) Notificacion=1;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    
+       if (Notificacion==1){
+      HTTPClient http;
+
+      http.begin(serverName);
+
+      http.addHeader("Content-Type", "application/json");
+      String httpRequestData = "{\"value1\":\"Nivel de deposito menor de 20cm\"}";
+      int httpResponseCode = http.POST(httpRequestData);
+      
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+
+      http.end();
+      if (httpResponseCode== 200){
+      Notificacion=0;
+      notificado=1;
+      Serial.print(Notificacion);
+      Serial.print(notificado);
+      }
+      
+  }
+  }
+  else {
+    Serial.println("WiFi Disconnected");
+    delay(5000);
+    WiFi.reconnect();
+  }
+  lastTime = millis();
+  delay(10000);
+}
